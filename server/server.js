@@ -5,6 +5,14 @@ import { sql } from "./config/db.js";
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+//Middlewares
+app.use(express.json());
+
+// app.use((req, res, next) => {
+//   console.log("Request received", req.method);
+//   next();
+// });
+
 async function initDB() {
   try {
     await sql`CREATE TABLE IF NOT EXISTS transactions(
@@ -24,7 +32,29 @@ async function initDB() {
 }
 
 app.get("/", (req, res) => {
-  res.send("Server is working!");
+  res.send("Its Working!");
+});
+
+app.post("/api/transactions", async (req, res) => {
+  // Title, amount, category, user_id
+  try {
+    const { title, amount, category, user_id } = req.body;
+
+    if (!title || amount == undefined || !category || !user_id) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const transaction = await sql`
+        INSERT INTO transactions (user_id,title,amount,category)
+        VALUES (${user_id},${title},${amount},${category})
+        RETURNING *`;
+
+    console.log(transaction);
+    res.status(201).json(transaction[0]);
+  } catch (error) {
+    console.log("Error creating transactions:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 });
 
 initDB().then(() => {
